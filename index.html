@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VibingWrapper — a live wallpaper that follows your AI</title>
+<meta name="description" content="A free, open-source Windows live wallpaper that follows your Claude Code and Codex sessions. Bells ring while it thinks, the train runs as long as it works.">
+<meta property="og:title" content="VibingWrapper — your AI's mood, as weather">
+<meta property="og:description" content="A free, open-source Windows live wallpaper that follows your Claude Code and Codex sessions.">
+<meta property="og:image" content="https://vibingwrapper.com/media/og.jpg">
+<meta property="og:url" content="https://vibingwrapper.com/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="media/icon-192.png">
+<style>
+  :root {
+    --bg: #0b0f17; --bg2: #111725; --ink: #eef2f8; --sub: #a3adbf; --line: rgba(255,255,255,.10);
+    --acc: #f4c46a; --acc-ink: #1b1406; --red: #ff5a4e;
+    --radius: 14px; --max: 1120px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 17px/1.6 -apple-system, "Segoe UI", system-ui, "Microsoft JhengHei", "PingFang TC", sans-serif; }
+  a { color: inherit; }
+  img, video { display: block; max-width: 100%; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 20px; }
+
+  /* nav */
+  nav { position: absolute; inset: 0 0 auto 0; z-index: 10; }
+  nav .wrap { display: flex; align-items: center; gap: 18px; height: 68px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; letter-spacing: .01em; }
+  .brand img { width: 30px; height: 30px; border-radius: 8px; }
+  nav .sp { flex: 1; }
+  nav a.lnk { text-decoration: none; color: rgba(255,255,255,.85); font-size: 15px; }
+  nav a.lnk:hover { color: #fff; }
+  .lang { display: inline-flex; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; overflow: hidden; background: rgba(0,0,0,.25); backdrop-filter: blur(6px); }
+  .lang button { all: unset; cursor: pointer; white-space: nowrap; padding: 4px 11px; font-size: 13px; color: rgba(255,255,255,.8); }
+  .lang button[aria-pressed="true"] { background: rgba(255,255,255,.9); color: #111; }
+
+  /* hero */
+  .hero { position: relative; min-height: 100svh; display: flex; align-items: flex-end; overflow: hidden; background: #6f8fb3 url(media/hero-train.jpg) center/cover; }
+  .hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .hero::after { content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(5,8,14,.55) 0%, rgba(5,8,14,0) 22%, rgba(5,8,14,0) 45%, rgba(5,8,14,.82) 82%, var(--bg) 100%); }
+  .hero .wrap { position: relative; z-index: 2; width: 100%; padding-bottom: 9vh; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: rgba(255,255,255,.9);
+    background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.18); padding: 4px 12px; border-radius: 999px; backdrop-filter: blur(6px); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); box-shadow: 0 0 10px var(--red); animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .15; } }
+  h1 { font-size: clamp(38px, 6.4vw, 76px); line-height: 1.05; margin: 18px 0 14px; letter-spacing: -.02em; text-shadow: 0 2px 24px rgba(0,0,0,.4); }
+  .lede { font-size: clamp(17px, 2vw, 21px); max-width: 640px; color: rgba(255,255,255,.92); margin: 0 0 28px; text-shadow: 0 1px 12px rgba(0,0,0,.5); }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 22px; border-radius: 12px; font-weight: 650; text-decoration: none; font-size: 16px; transition: transform .15s; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn.pri { background: var(--acc); color: var(--acc-ink); }
+  .btn.sec { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); color: #fff; backdrop-filter: blur(6px); }
+  .btn svg { width: 18px; height: 18px; }
+  .fine { margin-top: 14px; font-size: 14px; color: rgba(255,255,255,.75); }
+
+  /* sections */
+  section { padding: 96px 0; }
+  section.alt { background: var(--bg2); }
+  h2 { font-size: clamp(28px, 3.6vw, 42px); line-height: 1.15; margin: 0 0 12px; letter-spacing: -.01em; }
+  .kicker { color: var(--acc); font-weight: 650; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
+  .intro { color: var(--sub); max-width: 680px; margin: 0 0 40px; }
+
+  .states { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .state { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .state video { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #222; }
+  .state .t { padding: 14px 16px 18px; }
+  .state b { display: block; font-size: 16px; }
+  .state span { color: var(--sub); font-size: 15px; }
+  .state .tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .06em; padding: 2px 8px; border-radius: 6px; margin-bottom: 8px; background: rgba(255,255,255,.08); color: var(--sub); }
+
+  .split { display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; align-items: center; }
+  .split.rev { grid-template-columns: 1fr 1.15fr; }
+  .split.rev .media { order: 2; }
+  .media { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); position: relative; }
+  .media video, .media img { width: 100%; }
+  ul.tick { list-style: none; padding: 0; margin: 18px 0 0; }
+  ul.tick li { padding-left: 28px; position: relative; margin: 10px 0; color: var(--sub); }
+  ul.tick li b { color: var(--ink); font-weight: 600; }
+  ul.tick li::before { content: ""; position: absolute; left: 4px; top: .6em; width: 10px; height: 10px; border-radius: 3px; background: var(--acc); }
+  .soon { position: absolute; top: 14px; left: 14px; background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.25); color: #fff; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; letter-spacing: .04em; }
+
+  .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .gallery figure { margin: 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #000; }
+  .gallery img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+  .gallery figcaption { padding: 10px 14px; font-size: 14px; color: var(--sub); background: var(--bg2); }
+  .gallery figure.make { display: flex; flex-direction: column; justify-content: center; padding: 22px; background: linear-gradient(135deg, #18202f, #121826); }
+  .gallery figure.make b { font-size: 18px; margin-bottom: 6px; }
+  .gallery figure.make p { color: var(--sub); margin: 0 0 10px; font-size: 15px; }
+  code { font: 14px/1.5 ui-monospace, Consolas, monospace; background: rgba(255,255,255,.08); padding: 1px 6px; border-radius: 5px; }
+
+  .flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 12px; align-items: stretch; margin: 8px 0 36px; }
+  .flow .box { border: 1px solid var(--line); border-radius: 12px; padding: 18px; background: var(--bg); }
+  .flow .box b { display: block; margin-bottom: 4px; }
+  .flow .box span { color: var(--sub); font-size: 15px; }
+  .flow .arr { align-self: center; color: var(--acc); font-size: 22px; }
+  .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .fact { border-top: 2px solid var(--acc); padding-top: 14px; }
+  .fact b { display: block; margin-bottom: 4px; }
+  .fact span { color: var(--sub); font-size: 15px; }
+
+  .steps { counter-reset: s; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 40px; }
+  .step { border: 1px solid var(--line); border-radius: 12px; padding: 18px; background: var(--bg2); }
+  .step::before { counter-increment: s; content: counter(s); display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--acc); color: var(--acc-ink); font-weight: 800; margin-bottom: 10px; }
+  .step b { display: block; margin-bottom: 4px; }
+  .step span { color: var(--sub); font-size: 15px; }
+  .prompt { position: relative; border: 1px solid var(--line); border-radius: 12px; background: #070a10; }
+  .prompt pre { margin: 0; padding: 52px 20px 20px; white-space: pre-wrap; font: 14px/1.6 ui-monospace, Consolas, monospace; color: #cfd7e6; }
+  .prompt button { position: absolute; top: 10px; right: 10px; font: 600 13px/1 inherit; color: var(--ink); background: rgba(255,255,255,.1); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  .note { color: var(--sub); font-size: 15px; margin-top: 14px; }
+
+  .final { text-align: center; padding: 110px 0 90px; }
+  .final .ctas { justify-content: center; }
+  footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--sub); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+  footer .sp { flex: 1; }
+
+  @media (max-width: 900px) {
+    .states { grid-template-columns: repeat(2, 1fr); }
+    .split, .split.rev { grid-template-columns: 1fr; gap: 28px; }
+    .split.rev .media { order: 0; }
+    .gallery { grid-template-columns: repeat(2, 1fr); }
+    .flow { grid-template-columns: 1fr; }
+    .flow .arr { transform: rotate(90deg); justify-self: center; }
+    .facts, .steps { grid-template-columns: 1fr 1fr; }
+    nav a.lnk { display: none; }
+  }
+  @media (max-width: 560px) {
+    section { padding: 68px 0; }
+    .states, .gallery, .facts, .steps { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; } html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="media/icon-192.png" alt="">VibingWrapper</a>
+    <span class="sp"></span>
+    <a class="lnk" href="#how" data-i18n="nav.how">How it works</a>
+    <a class="lnk" href="#install" data-i18n="nav.install">Install</a>
+    <a class="lnk" href="https://github.com/youllook/VibingWrapper">GitHub</a>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <video autoplay muted loop playsinline preload="auto" poster="media/hero-train.jpg">
+    <source src="media/hero-train.mp4" type="video/mp4">
+  </video>
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow">Your AI is running tools</span></span>
+    <h1 data-i18n="hero.title">The train runs as long as your AI works.</h1>
+    <p class="lede" data-i18n="hero.lede">VibingWrapper is a live wallpaper for Windows that follows your Claude Code and Codex sessions. Bells ring while it thinks, the train rolls by while it works, and you know what your AI is doing without switching windows.</p>
+    <div class="ctas">
+      <a class="btn pri" href="https://github.com/youllook/VibingWrapper/releases/latest">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10 4.5v7H3zm8-1.1L21 3v8.5H11zM3 12.5h7v7L3 18.5zm8 0h10V21l-10-1.4z"/></svg>
+        <span data-i18n="cta.download">Download for Windows</span>
+      </a>
+      <a class="btn sec" href="https://github.com/youllook/VibingWrapper">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.9 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5"/></svg>
+        <span data-i18n="cta.github">View on GitHub</span>
+      </a>
+    </div>
+    <div class="fine" data-i18n="hero.fine">Free &amp; open source (MIT) · Windows 10 / 11 · 2 MB download</div>
+  </div>
+</header>
+
+<section id="states">
+  <div class="wrap">
+    <div class="kicker" data-i18n="states.kicker">Glance, don't switch</div>
+    <h2 data-i18n="states.title">Every state has its own scene.</h2>
+    <p class="intro" data-i18n="states.intro">Your coding agent fires hooks as it works. The wallpaper turns each one into something you can catch from the corner of your eye.</p>
+    <div class="states">
+      <div class="state">
+        <video muted loop playsinline preload="none" poster="media/state-think.jpg" data-autoplay><source src="media/state-think.mp4" type="video/mp4"></video>
+        <div class="t"><div class="tag" data-i18n="s1.tag">THINKING</div><b data-i18n="s1.b">Bells ring, barriers drop</b><span data-i18n="s1.s">You sent a prompt. A train is on its way.</span></div>
+      </div>
+      <div class="state">
+        <video muted loop playsinline preload="none" poster="media/state-run.jpg" data-autoplay><source src="media/state-run.mp4" type="video/mp4"></video>
+        <div class="t"><div class="tag" data-i18n="s2.tag">RUNNING TOOLS</div><b data-i18n="s2.b">The train keeps rolling</b><span data-i18n="s2.s">Car after car, for as long as it works.</span></div>
+      </div>
+      <div class="state">
+        <video muted loop playsinline preload="none" poster="media/state-done.jpg" data-autoplay><source src="media/state-done.mp4" type="video/mp4"></video>
+        <div class="t"><div class="tag" data-i18n="s3.tag">DONE</div><b data-i18n="s3.b">The crossing opens</b><span data-i18n="s3.s">The last car passes and the barriers lift.</span></div>
+      </div>
+      <div class="state">
+        <video muted loop playsinline preload="none" poster="media/state-wait.jpg" data-autoplay><source src="media/state-wait.mp4" type="video/mp4"></video>
+        <div class="t"><div class="tag" data-i18n="s4.tag">NEEDS YOU</div><b data-i18n="s4.b">The bells ring again</b><span data-i18n="s4.s">It's asking a question or waiting for your approval.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="weather">
+  <div class="wrap split">
+    <div class="media">
+      <video muted loop playsinline preload="none" poster="media/weather-states.jpg" data-autoplay><source src="media/weather-states.mp4" type="video/mp4"></video>
+    </div>
+    <div>
+      <div class="kicker" data-i18n="w.kicker">Or keep it simple</div>
+      <h2 data-i18n="w.title">Your AI's mood, as weather.</h2>
+      <p class="intro" style="margin-bottom:0" data-i18n="w.intro">The Weather theme is just the sky, following the real sunrise and sunset.</p>
+      <ul class="tick">
+        <li data-i18n="w.l1"><b>Overcast</b> while it thinks</li>
+        <li data-i18n="w.l2"><b>Thunderstorm</b> while it runs tools</li>
+        <li data-i18n="w.l3"><b>Clearing</b> when it's done</li>
+        <li data-i18n="w.l4"><b>One pulsing star</b> when it needs you</li>
+      </ul>
+      <p class="note" data-i18n="w.multi">Running several sessions? Up to five are tracked at once, and the sky shows whichever needs you most.</p>
+    </div>
+  </div>
+</section>
+
+<section id="monster">
+  <div class="wrap split rev">
+    <div class="media">
+      <img src="media/sea-monster-2.jpg" alt="A small boat crossing a dark sea while a giant squid rises beside it" loading="lazy">
+      <span class="soon" data-i18n="m.soon">COMING SOON</span>
+    </div>
+    <div>
+      <div class="kicker" data-i18n="m.kicker">Next theme</div>
+      <h2 data-i18n="m.title">Something big is under the boat.</h2>
+      <p class="intro" style="margin-bottom:0" data-i18n="m.intro">A small boat trails its wake across the open sea. When your agent gets to work, a squid dozens of times its size rises to the surface, its eye right beside the hull.</p>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="themes">
+  <div class="wrap">
+    <div class="kicker" data-i18n="g.kicker">Theme library</div>
+    <h2 data-i18n="g.title">Pick a world. Each one plays the same states.</h2>
+    <p class="intro" data-i18n="g.intro">Browse, download and switch themes from the gear menu's built-in theme library.</p>
+    <div class="gallery">
+      <figure><img src="media/g-crossing-night.jpg" alt="" loading="lazy"><figcaption data-i18n="g.c1">Level crossing · night alarm</figcaption></figure>
+      <figure><img src="media/g-weather-storm.jpg" alt="" loading="lazy"><figcaption data-i18n="g.c2">Weather · thunderstorm</figcaption></figure>
+      <figure><img src="media/g-sky-sea-dusk.jpg" alt="" loading="lazy"><figcaption data-i18n="g.c3">Weather + sea · one boat per session</figcaption></figure>
+      <figure><img src="media/g-ocean-night.jpg" alt="" loading="lazy"><figcaption data-i18n="g.c4">Sea · the waiting boat blinks its lamps</figcaption></figure>
+      <figure><img src="media/g-paddy-day.jpg" alt="" loading="lazy"><figcaption data-i18n="g.c5">Paddy · the busier it gets, the harder the wind</figcaption></figure>
+      <figure class="make">
+        <b data-i18n="g.make">Make your own</b>
+        <p data-i18n="g.makes">A theme is just a folder: a <code>theme.json</code> plus a web page. Copy one, change the name, and it shows up in the menu.</p>
+        <a href="https://github.com/youllook/VibingWrapper/tree/main/themes" data-i18n="g.makel">Theme spec →</a>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="kicker" data-i18n="h.kicker">How it works</div>
+    <h2 data-i18n="h.title">Hooks in, weather out. Nothing leaves your machine.</h2>
+    <p class="intro" data-i18n="h.intro">One click in the gear menu adds a few hooks to Claude Code or Codex. Each hook sends a tiny event to the app on your own computer.</p>
+    <div class="flow">
+      <div class="box"><b>Claude Code · Codex</b><span data-i18n="h.f1">Prompt submitted, tool started, stopped, waiting for you</span></div>
+      <div class="arr" aria-hidden="true">→</div>
+      <div class="box"><b>127.0.0.1:47321</b><span data-i18n="h.f2">A local listener tracks up to five sessions</span></div>
+      <div class="arr" aria-hidden="true">→</div>
+      <div class="box"><b data-i18n="h.f3b">Your desktop</b><span data-i18n="h.f3">The wallpaper sits behind your icons and changes with the state</span></div>
+    </div>
+    <div class="facts">
+      <div class="fact"><b data-i18n="h.p1b">Local only</b><span data-i18n="h.p1">Events go to 127.0.0.1. It logs the event name and the first 8 characters of the session ID — never prompts, commands or paths.</span></div>
+      <div class="fact"><b data-i18n="h.p2b">Never slows your agent</b><span data-i18n="h.p2">Hooks run async with a 1-second timeout. If the app isn't running, they quietly give up.</span></div>
+      <div class="fact"><b data-i18n="h.p3b">Stays out of the way</b><span data-i18n="h.p3">It pauses when a maximized or full-screen window covers the desktop. A boss key hides everything.</span></div>
+    </div>
+    <p class="note" data-i18n="h.note">Works with Claude Code (CLI, or the Code tab in Claude Desktop) and Codex. Regular Claude Desktop chats have no hooks, so the wallpaper won't react to them.</p>
+  </div>
+</section>
+
+<section class="alt" id="install">
+  <div class="wrap">
+    <div class="kicker" data-i18n="i.kicker">Install</div>
+    <h2 data-i18n="i.title">Running in about a minute.</h2>
+    <p class="intro" data-i18n="i.intro">Windows 10 or 11. No Node.js needed.</p>
+    <div class="steps">
+      <div class="step"><b data-i18n="i.1b">Download</b><span data-i18n="i.1">Get the zip from the <a href="https://github.com/youllook/VibingWrapper/releases/latest">latest release</a> (2 MB).</span></div>
+      <div class="step"><b data-i18n="i.2b">Extract &amp; run</b><span data-i18n="i.2">Right-click → Extract All, then run VibingWrapper.exe. It's unsigned, so SmartScreen may ask: More info → Run anyway.</span></div>
+      <div class="step"><b data-i18n="i.3b">Connect</b><span data-i18n="i.3">Gear (top right) → Settings → Connect Claude, and Connect Codex if you use it. Your settings file is backed up first.</span></div>
+      <div class="step"><b data-i18n="i.4b">Restart sessions</b><span data-i18n="i.4">Restart open Claude Code sessions (in Codex, run /hooks once to trust them). Then get to work.</span></div>
+    </div>
+    <h3 style="margin:0 0 6px" data-i18n="i.aib">Prefer to let your agent review it first?</h3>
+    <p class="note" style="margin:0 0 14px" data-i18n="i.ai">Paste this into Claude Code or Codex. It checks the code for security concerns, then installs only once you agree.</p>
+    <div class="prompt">
+      <button type="button" id="copy" data-i18n="i.copy">Copy</button>
+<pre id="prompt-en">Install VibingWrapper (https://github.com/youllook/VibingWrapper) for me: a Windows live wallpaper that follows Claude Code / Codex.
+1. Clone it into a folder I choose (ask me if I haven't said). Before installing, do a security review and sum it up in a few sentences:
+   - which local port it opens, what data it receives, whether it talks to any outside server
+   - which files it writes (especially the hooks it adds to ~/.claude/settings.json and ~/.codex/hooks.json)
+   - anything suspicious in package.json dependencies or install scripts
+2. Once I agree, run npm install and npm start, and npm run shortcut for a desktop shortcut.
+3. Ask me to click the gear (top right) → Settings → "Connect Claude" (and "Connect Codex" if I use Codex) to add the hooks, then tell me which sessions to restart.
+Note: this only works with Claude Code (CLI, or the Code tab in Claude Desktop) and Codex; plain Claude Desktop chats have no hooks, so the wallpaper won't react.</pre>
+<pre id="prompt-zh" hidden>幫我安裝 VibingWrapper（https://github.com/youllook/VibingWrapper），一個跟著 Claude Code／Codex 狀態變天的 Windows 動態桌布。
+1. 先 clone 到我指定的資料夾（沒指定就問我），安裝前先做資安檢查，把結論用幾句話告訴我：
+   - 它會在本機開什麼 port、收什麼資料、有沒有連到外部網路
+   - 它會寫哪些檔案（尤其是 ~/.claude/settings.json、~/.codex/hooks.json 的 hook 內容）
+   - package.json 的相依套件與 install script 有沒有可疑的地方
+2. 我同意之後再 npm install、npm start，並用 npm run shortcut 在桌面建捷徑。
+3. 請我點右上角齒輪 →「Claude 連動」（有用 Codex 的話也點「Codex 連動」）裝 hook，然後告訴我要重開哪些 session。
+注意：連動只對 Claude Code（CLI、Desktop 的 Code 分頁）和 Codex 有效，Claude Desktop 的一般對話沒有 hook，不會變天。</pre>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2 data-i18n="f.title">Let the wallpaper watch your agent.</h2>
+    <p class="intro" style="margin:0 auto 28px" data-i18n="f.intro">It's free and open source. Feedback, issues and new themes are very welcome.</p>
+    <div class="ctas">
+      <a class="btn pri" href="https://github.com/youllook/VibingWrapper/releases/latest"><span data-i18n="cta.download">Download for Windows</span></a>
+      <a class="btn sec" href="https://github.com/youllook/VibingWrapper/issues"><span data-i18n="cta.feedback">Leave feedback</span></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>VibingWrapper · MIT</span>
+    <span class="sp"></span>
+    <a href="https://github.com/youllook/VibingWrapper">GitHub</a>
+    <a href="https://github.com/youllook/VibingWrapper/releases">Releases</a>
+    <a href="https://www.youtube.com/@vibingwrapper">YouTube</a>
+    <a href="https://www.threads.com/@vibingwrapper">Threads</a>
+  </div>
+</footer>
+
+<script>
+const ZH = {
+  "nav.how": "運作原理", "nav.install": "安裝",
+  "hero.eyebrow": "AI 正在跑工具",
+  "hero.title": "AI 工作多久，列車就開多久。",
+  "hero.lede": "VibingWrapper 是一張 Windows 動態桌布，跟著你的 Claude Code 和 Codex 變化。AI 在想事情，平交道警報響起；開始做事，列車一節一節開過去。不用切視窗，眼角餘光就知道 AI 在做什麼。",
+  "cta.download": "下載 Windows 版", "cta.github": "到 GitHub 看原始碼", "cta.feedback": "留下回饋",
+  "hero.fine": "免費開源（MIT）· Windows 10／11 · 下載只要 2 MB",
+  "states.kicker": "瞄一眼就知道", "states.title": "每一種狀態，都有自己的畫面。",
+  "states.intro": "AI 工作時會送出 hook 事件，桌布把每一個事件變成眼角看得到的場景。",
+  "s1.tag": "思考中", "s1.b": "警報響起，柵欄放下", "s1.s": "你剛送出指令，列車正在路上。",
+  "s2.tag": "跑工具", "s2.b": "列車一直開", "s2.s": "一節接一節，工作多久就開多久。",
+  "s3.tag": "做完了", "s3.b": "柵欄升起", "s3.s": "最後一節通過，平交道恢復通行。",
+  "s4.tag": "等你", "s4.b": "警報再次響起", "s4.s": "它在問你問題，或等你批准。",
+  "w.kicker": "也可以簡單一點", "w.title": "AI 的心情，就是天氣。",
+  "w.intro": "「天氣」主題只有一片天空，跟著真實的日出日落。",
+  "w.l1": "<b>轉陰</b>：AI 在思考", "w.l2": "<b>雷雨</b>：AI 在跑工具", "w.l3": "<b>放晴</b>：做完了", "w.l4": "<b>一顆星慢慢閃</b>：在等你",
+  "w.multi": "同時開好幾個 session？最多追蹤五個，天空會顯示最需要你注意的那一個。",
+  "m.soon": "即將推出", "m.kicker": "下一個主題", "m.title": "船底下，有個大傢伙。",
+  "m.intro": "一艘小艇拖著白浪駛過大海。AI 一開始工作，一隻比船大幾十倍的巨魷就浮上水面，大眼睛就在船邊。",
+  "g.kicker": "主題庫", "g.title": "挑一個世界，每個都演同一套狀態。",
+  "g.intro": "從齒輪選單的「主題庫」瀏覽、下載、切換主題。",
+  "g.c1": "平交道・夜晚警報", "g.c2": "天氣・雷雨", "g.c3": "天氣＋海・一個 session 一艘船", "g.c4": "海・在等你的那艘船會閃燈", "g.c5": "稻田・越忙風越大",
+  "g.make": "自己做一個", "g.makes": "主題就是一個資料夾：一個 <code>theme.json</code> 加一個網頁。複製一份、改名字，選單裡就會多一個選項。", "g.makel": "主題規格 →",
+  "h.kicker": "運作原理", "h.title": "Hook 進來，天氣出去。資料不離開你的電腦。",
+  "h.intro": "在齒輪選單點一下，就會幫 Claude Code 或 Codex 加上幾個 hook。每個 hook 只把一個小事件送到你自己電腦上的程式。",
+  "h.f1": "送出指令、開始跑工具、做完、等你回覆", "h.f2": "本機程式最多同時追蹤五個 session", "h.f3b": "你的桌面", "h.f3": "桌布掛在桌面圖示底下，跟著狀態變化",
+  "h.p1b": "只在本機", "h.p1": "事件只送到 127.0.0.1。只記錄事件名稱和 session ID 前 8 碼，不記錄任何提示內容、指令或路徑。",
+  "h.p2b": "不拖慢 AI", "h.p2": "hook 非同步執行，1 秒逾時。程式沒開的時候就安靜放棄。",
+  "h.p3b": "不擋路", "h.p3": "被最大化或全螢幕視窗蓋住時自動暫停。還有老闆鍵，一鍵全收。",
+  "h.note": "支援 Claude Code（CLI、Claude Desktop 的 Code 分頁）和 Codex。Claude Desktop 的一般對話沒有 hook，桌布不會跟著變。",
+  "i.kicker": "安裝", "i.title": "一分鐘就能跑起來。", "i.intro": "Windows 10 或 11，不需要 Node.js。",
+  "i.1b": "下載", "i.1": "到<a href=\"https://github.com/youllook/VibingWrapper/releases/latest\">最新版本</a>下載 zip（2 MB）。",
+  "i.2b": "解壓並執行", "i.2": "右鍵 → 全部解壓縮，再執行 VibingWrapper.exe。程式沒有簽章，Windows 跳出提醒時按「其他資訊」→「仍要執行」。",
+  "i.3b": "連動", "i.3": "右上角齒輪 →「設定」→「Claude 連動」，有用 Codex 的話也點「Codex 連動」。原本的設定檔會先備份。",
+  "i.4b": "重開 session", "i.4": "已經開著的 Claude Code session 要重開一次（Codex 要輸入 /hooks 信任一次），然後就開始工作吧。",
+  "i.aib": "想先讓 AI 幫你檢查一遍？", "i.ai": "把這段貼給 Claude Code 或 Codex。它會先檢查程式碼有沒有資安疑慮，等你同意才安裝。",
+  "i.copy": "複製", "i.copied": "已複製",
+  "f.title": "讓桌布幫你盯著 AI。", "f.intro": "免費、開源。歡迎回饋、回報問題，或做新主題。"
+};
+const EN = {};
+document.querySelectorAll("[data-i18n]").forEach(el => { EN[el.dataset.i18n] = el.innerHTML; });
+EN["i.copied"] = "Copied";
+let lang = "en";
+function setLang(l) {
+  lang = l;
+  const dict = l === "zh" ? ZH : EN;
+  document.querySelectorAll("[data-i18n]").forEach(el => { const v = dict[el.dataset.i18n]; if (v != null) el.innerHTML = v; });
+  document.documentElement.lang = l === "zh" ? "zh-Hant" : "en";
+  document.getElementById("prompt-en").hidden = l === "zh";
+  document.getElementById("prompt-zh").hidden = l !== "zh";
+  document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === l));
+  try { localStorage.setItem("vw-lang", l); } catch (e) {}
+}
+document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
+let saved = null;
+try { saved = localStorage.getItem("vw-lang"); } catch (e) {}
+const q = new URLSearchParams(location.search).get("lang");
+const initial = q || saved || (/^zh/i.test(navigator.language || "") ? "zh" : "en");
+if (initial === "zh") setLang("zh");
+
+document.getElementById("copy").addEventListener("click", async e => {
+  const text = document.getElementById(lang === "zh" ? "prompt-zh" : "prompt-en").textContent;
+  try { await navigator.clipboard.writeText(text); } catch (err) { return; }
+  const b = e.currentTarget; b.textContent = (lang === "zh" ? ZH : EN)["i.copied"];
+  setTimeout(() => { b.textContent = (lang === "zh" ? ZH : EN)["i.copy"]; }, 1600);
+});
+
+// play section videos only while visible
+const io = "IntersectionObserver" in window ? new IntersectionObserver(entries => {
+  entries.forEach(en => { const v = en.target; if (en.isIntersecting) { v.play().catch(() => {}); } else { v.pause(); } });
+}, { threshold: 0.25 }) : null;
+document.querySelectorAll("video[data-autoplay]").forEach(v => io ? io.observe(v) : v.play().catch(() => {}));
+</script>
+</body>
+</html>
