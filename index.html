@@ -136,6 +136,7 @@
   }
   @media (prefers-reduced-motion: reduce) { .dot { animation: none; } html { scroll-behavior: auto; } }
 </style>
+<script src="analytics.js"></script>
 </head>
 <body>
 
@@ -387,7 +388,7 @@ function setLang(l) {
   document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === l));
   try { localStorage.setItem("vw-lang", l); } catch (e) {}
 }
-document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => setLang(b.dataset.lang)));
+document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => { setLang(b.dataset.lang); vwTrack("lang_switch", { page_lang: b.dataset.lang }); }));
 let saved = null;
 try { saved = localStorage.getItem("vw-lang"); } catch (e) {}
 const q = new URLSearchParams(location.search).get("lang");
@@ -397,6 +398,7 @@ if (initial === "zh") setLang("zh");
 document.getElementById("copy").addEventListener("click", async e => {
   const text = document.getElementById(lang === "zh" ? "prompt-zh" : "prompt-en").textContent;
   try { await navigator.clipboard.writeText(text); } catch (err) { return; }
+  vwTrack("copy_install_prompt", { page_lang: lang });
   const b = e.currentTarget; b.textContent = (lang === "zh" ? ZH : EN)["i.copied"];
   setTimeout(() => { b.textContent = (lang === "zh" ? ZH : EN)["i.copy"]; }, 1600);
 });

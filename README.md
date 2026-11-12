@@ -5,3 +5,5 @@ Landing page for [VibingWrapper](https://github.com/youllook/VibingWrapper), a W
 Plain static HTML (`index.html`), served by GitHub Pages at https://vibingwrapper.com. English by default; the toggle in the top right (or `?lang=zh`) switches to Traditional Chinese.
 
 `media/` holds the hero and state clips (cut from real wallpaper recordings) and screenshots.
+
+Analytics: Google Analytics 4 via `analytics.js`. Event list, UTM conventions and how to read GitHub download counts are in [TRACKING.md](TRACKING.md).
