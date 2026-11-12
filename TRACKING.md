@@ -5,7 +5,7 @@ How we measure whether the site (and the posts pointing at it) bring people to d
 ## 1. Google Analytics 4 (the site)
 
 - Code: [`analytics.js`](analytics.js), loaded from `<head>` in `index.html`.
-- Measurement ID lives in `GA_ID` at the top of `analytics.js`. Empty = tracking off.
+- Measurement ID `G-Z2ST7Z1WKJ` (GA account "VibingWrapper", property + web stream "vibingwrapper.com") lives in `GA_ID` at the top of `analytics.js`. Empty = tracking off.
 - Only reports on `vibingwrapper.com` / `www.vibingwrapper.com`. Local previews (`localhost`, `file://`) send nothing, so testing doesn't pollute the numbers.
 - GA4 default "enhanced measurement" (page views, scrolls, outbound clicks) stays on; the custom events below add the detail we care about.
 

@@ -1,7 +1,7 @@
 // Google Analytics 4 for vibingwrapper.com — see TRACKING.md for the event list.
 // Leave GA_ID empty to turn tracking off (nothing is loaded, no cookies).
 (function () {
-  var GA_ID = "";
+  var GA_ID = "G-Z2ST7Z1WKJ";
   var host = location.hostname;
   // only the real site reports; local previews (localhost / file://) stay silent
   if (!GA_ID || !/(^|\.)vibingwrapper\.com$/.test(host)) { window.vwTrack = function () {}; return; }
