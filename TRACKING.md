@@ -23,10 +23,13 @@ How we measure whether the site (and the posts pointing at it) bring people to d
 
 `link_location` is worked out from the nearest `<nav>` / `<header>` / `<section id>` / `<footer>`, so new links are covered without extra markup.
 
-### One-time GA setup (after the first data arrives)
+### One-time GA setup
 
-1. **Admin → Events** → mark `download_click` and `copy_install_prompt` as **Key events** (conversions).
-2. **Admin → Custom definitions** → add event-scoped dimensions `link_location`, `page_lang`, `section_id` so they show up in reports.
+- [x] Account `VibingWrapper` (416031116) → property `vibingwrapper.com` (563968654) → web stream, created 2026-11-12. Taiwan time zone, TWD.
+- [x] **Admin → Custom definitions**: event-scoped dimensions `Section` (`section_id`), `Link location` (`link_location`), `Page language` (`page_lang`).
+- [ ] **Admin → Events → Recent events**: star `download_click` and `copy_install_prompt` as **Key events**. GA only lists an event there up to 24 h after it first fires (both fired 2026-11-12), so do this on/after 2026-11-13.
+
+Reports: https://analytics.google.com/analytics/web/#/a416031116p563968654/reports/intelligenthome
 
 ### Where to look
 
